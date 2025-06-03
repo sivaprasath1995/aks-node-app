@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aks-node-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aks-node-app
+  template:
+    metadata:
+      labels:
+        app: aks-node-app
+    spec:
+      containers:
+        - name: aks-node-app
+          image: <REGISTRY>/<USERNAME>/aks-node-app:latest
+          ports:
+            - containerPort: 3000
