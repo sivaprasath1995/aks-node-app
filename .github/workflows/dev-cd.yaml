@@ -1,42 +1,30 @@
-name: Deploy to AKS (Dev)
+name: CI/CD to AKS
 
 on:
   push:
-    branches:
-      - dev
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+    branches: ["main", "dev"]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ghcr.io/${{ github.repository }}:latest
+        run: |
+          docker build -t ghcr.io/${{ secrets.REGISTRY_USERNAME }}/aks-node-app:latest .
+          docker push ghcr.io/${{ secrets.REGISTRY_USERNAME }}/aks-node-app:latest
 
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: v1.31.8
-
-      - name: Azure Login
+      - name: Set up Azure CLI
         uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -44,10 +32,7 @@ jobs:
           client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       - name: Set AKS context
-        uses: azure/aks-set-context@v3
-        with:
-          resource-group: aks-free-rg
-          cluster-name: aks-free-cluster
+        run: az aks get-credentials --resource-group aks-free-rg --name aks-free-cluster --overwrite-existing
 
       - name: Deploy to AKS
         run: |
